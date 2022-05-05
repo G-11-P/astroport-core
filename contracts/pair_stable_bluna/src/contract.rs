@@ -148,7 +148,7 @@ pub fn instantiate(
 
 /// ## Description
 /// The entry point to the contract for processing replies from submessages.
-/// # Params
+/// ## Params
 /// * **deps** is an object of type [`DepsMut`].
 ///
 /// * **_env** is an object of type [`Env`].
@@ -391,7 +391,7 @@ pub fn receive_cw20(
 }
 
 /// ## Description
-/// Provides liquidity with the specified input parameters.
+/// Provides liquidity using the specified input parameters.
 /// Returns a [`ContractError`] on failure, otherwise returns a [`Response`] with the
 /// specified attributes if the operation was successful.
 /// ## Params
@@ -1521,8 +1521,14 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, Con
             "1.0.0" | "1.0.0-fix1" => {
                 let config = CONFIG_PAIR_STABLE_V100.load(deps.storage)?;
                 let new_config = crate::state::Config {
-                    bluna_rewarder: addr_validate_to_lower(deps.api, &msg.bluna_rewarder)?,
-                    generator: addr_validate_to_lower(deps.api, &msg.generator)?,
+                    bluna_rewarder: addr_validate_to_lower(
+                        deps.api,
+                        &msg.bluna_rewarder.ok_or(ContractError::MigrationError {})?,
+                    )?,
+                    generator: addr_validate_to_lower(
+                        deps.api,
+                        &msg.generator.ok_or(ContractError::MigrationError {})?,
+                    )?,
                     block_time_last: config.block_time_last,
                     factory_addr: config.factory_addr.clone(),
                     init_amp: config.init_amp,
@@ -1542,6 +1548,10 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, Con
                         &config.factory_addr,
                     )?);
             }
+            _ => return Err(ContractError::MigrationError {}),
+        },
+        "astroport-pair-stable-bluna" => match contract_version.version.as_ref() {
+            "1.0.1" => {}
             _ => return Err(ContractError::MigrationError {}),
         },
         _ => return Err(ContractError::MigrationError {}),
